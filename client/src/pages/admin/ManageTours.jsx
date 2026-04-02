@@ -26,7 +26,7 @@ const ManageTours = () => {
               <tr className="hover:bg-slate-800/20 transition-colors">
                 <td className="px-6 py-4 font-bold text-white">Swiss Alps Explorer</td>
                 <td className="px-6 py-4 text-slate-400">Switzerland</td>
-                <td className="px-6 py-4">$1,299</td>
+                <td className="px-6 py-4">₹1,299</td>
                 <td className="px-6 py-4 flex gap-3">
                   <button className="p-2 text-blue-400 hover:bg-blue-400/10 rounded-lg transition-colors"><Edit size={16} /></button>
                   <button className="p-2 text-red-400 hover:bg-red-400/10 rounded-lg transition-colors"><Trash2 size={16} /></button>
@@ -35,7 +35,7 @@ const ManageTours = () => {
               <tr className="hover:bg-slate-800/20 transition-colors">
                 <td className="px-6 py-4 font-bold text-white">Bali Beach Retreat</td>
                 <td className="px-6 py-4 text-slate-400">Indonesia</td>
-                <td className="px-6 py-4">$849</td>
+                <td className="px-6 py-4">₹849</td>
                 <td className="px-6 py-4 flex gap-3">
                   <button className="p-2 text-blue-400 hover:bg-blue-400/10 rounded-lg transition-colors"><Edit size={16} /></button>
                   <button className="p-2 text-red-400 hover:bg-red-400/10 rounded-lg transition-colors"><Trash2 size={16} /></button>

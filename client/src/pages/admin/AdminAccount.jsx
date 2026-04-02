@@ -26,7 +26,7 @@ const AdminAccount = () => {
           <div className="text-center md:text-left z-10">
             <h2 className="text-3xl font-black text-white tracking-tight mb-2">Super Admin</h2>
             <div className="flex items-center justify-center md:justify-start gap-2 text-slate-400 font-medium mb-4">
-              <Mail size={16} /> admin@briskode.com
+              <Mail size={16} /> admin@bookingbuddy.com
             </div>
             <span className="inline-flex items-center gap-1.5 bg-primary-500/10 text-primary-400 border border-primary-500/20 px-3 py-1.5 rounded-lg text-sm font-bold shadow-sm">
               <ShieldCheck size={16} /> Full System Access
@@ -57,7 +57,7 @@ const AdminAccount = () => {
                 <label className="block text-xs font-bold text-slate-500 mb-2 uppercase tracking-widest">Email Address</label>
                 <input 
                   type="email" 
-                  defaultValue="admin@briskode.com" 
+                  defaultValue="admin@bookingbuddy.com" 
                   className="w-full px-4 py-3.5 bg-slate-950 border border-slate-800 rounded-xl text-white font-medium focus:outline-none focus:border-primary-500/50 focus:ring-1 focus:ring-primary-500/50 transition-all" 
                 />
               </div>
