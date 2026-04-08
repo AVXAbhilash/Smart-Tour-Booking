@@ -1,102 +1,115 @@
-import User from "../models/user.js"; // Adjust path as necessary
-import bcrypt from "bcryptjs";
-import jwt from "jsonwebtoken";
+import User from '../models/user.js';
+import jwt from 'jsonwebtoken';
 
-// --- Helper function to generate JWT ---
+// Helper function to generate JWT
 const generateToken = (id) => {
   return jwt.sign({ id }, process.env.JWT_SECRET, {
-    expiresIn: "30d",
+    expiresIn: '30d',
   });
 };
 
-/**
- * @desc    Register a new user
- * @route   POST /api/users/register
- */
-export const registerUser = async (req, res) => {
+// @desc    Register a new user
+// @route   POST /api/users/register
+// @access  Public
+export const registerUser = async (req, res, next) => {
   try {
-    const { fullName, email, password } = req.body;
+    // 1. Destructure 'role' from req.body
+    const { firstName, lastName, email, password, phone, role } = req.body;
 
-    // 1. Check if user already exists
-    const existingUser = await User.findOne({ email });
-    if (existingUser) {
-      return res.status(400).json({ message: "User already exists" });
+    const userExists = await User.findOne({ email });
+    if (userExists) {
+      res.status(400);
+      throw new Error("User already exists");
     }
 
-    // 2. Hash the password
-    const salt = await bcrypt.genSalt(10);
-    const hashedPassword = await bcrypt.hash(password, salt);
-
-    // 3. Create user
-    const newUser = await User.create({
-      fullName,
+    // 2. Add 'role' to the create object
+    const user = await User.create({
+      firstName,
+      lastName,
       email,
-      password: hashedPassword,
+      password,
+      phone,
+      role: role || 'user' // Default to 'user' if role isn't provided
     });
 
-    res.status(201).json({
-      message: "User created successfully",
-      user: { 
-        id: newUser._id, 
-        fullName: newUser.fullName, 
-        email: newUser.email 
-      },
-      token: generateToken(newUser._id), // Send token on register
-    });
+    if (user) {
+      res.status(201).json({
+        message: "Registration successful! Welcome aboard.",
+        _id: user._id,
+        firstName: user.firstName,
+        email: user.email,
+        role: user.role, // This will now show 'admin' in the response
+        token: generateToken(user._id),
+      });
+    } else {
+      res.status(400);
+      throw new Error("Invalid user data");
+    }
   } catch (error) {
-    res.status(500).json({ message: "Server error", error: error.message });
+    next(error);
   }
 };
 
-/**
- * @desc    Authenticate a user (Login)
- * @route   POST /api/users/login
- */
-export const loginUser = async (req, res) => {
+// @desc    Auth user & get token
+// @route   POST /api/users/login
+// @access  Public
+export const loginUser = async (req, res, next) => {
   try {
     const { email, password } = req.body;
 
-    // 1. Find user by email
-    const user = await User.findOne({ email });
-    if (!user) {
-      return res.status(404).json({ message: "User not found" });
-    }
+    // Find user and explicitly select the password field since we hid it in the model
+    const user = await User.findOne({ email }).select('+password');
 
-    // 2. Check if password matches
-    const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch) {
-      return res.status(401).json({ message: "Invalid credentials" });
-    }
-
-    // 3. Send back user data and token
-    res.status(200).json({
-      message: "Login successful",
-      user: {
-        id: user._id,
-        fullName: user.fullName,
+    if (user && (await user.matchPassword(password))) {
+      res.json({
+        message: "Login successful! Welcome back.", // <-- Added message
+        _id: user._id,
+        firstName: user.firstName,
         email: user.email,
-      },
-      token: generateToken(user._id), // Send token on login
-    });
+        role: user.role,
+        token: generateToken(user._id),
+      });
+    } else {
+      res.status(401);
+      throw new Error("Invalid email or password");
+    }
   } catch (error) {
-    res.status(500).json({ message: "Server error", error: error.message });
+    next(error);
   }
 };
 
+// @desc    Logout user / clear token
+// @route   GET /api/users/logout
+// @access  Public
+export const logoutUser = (req, res) => {
+  res.status(200).json({ 
+    message: "Logged out successfully. See you next time!" // <-- Streamlined message
+  });
+};
 
-/**
- * @desc    Logout user
- * @route   POST /api/users/logout
- */
-export const logoutUser = async (req, res) => {
+// @desc    Get user profile
+// @route   GET /api/users/profile
+// @access  Private
+export const getUserProfile = async (req, res, next) => {
   try {
-    // Because you are sending the JWT inside the JSON response (not in HTTP-only cookies),
-    // the server doesn't need to destroy anything. The frontend handles the actual token deletion.
-    
-    res.status(200).json({ 
-      message: "Logged out successfully. Please clear the token from your frontend local storage." 
-    });
+    // req.user is populated by your protect middleware
+    const user = await User.findById(req.user._id);
+
+    if (user) {
+      res.json({
+        message: "Profile data retrieved successfully.", // <-- Added message
+        _id: user._id,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        email: user.email,
+        phone: user.phone,
+        role: user.role,
+      });
+    } else {
+      res.status(404);
+      throw new Error("User not found");
+    }
   } catch (error) {
-    res.status(500).json({ message: "Server error", error: error.message });
+    next(error);
   }
 };

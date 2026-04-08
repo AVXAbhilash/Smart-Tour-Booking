@@ -2,6 +2,9 @@ import express from "express";
 import dotenv from "dotenv";
 import mongoose from "mongoose";
 import userRoutes from "./routes/userRoutes.js";
+import tourRoutes from './routes/tourRoutes.js';
+import bookingRoutes from './routes/bookingRoutes.js';
+import reviewRoutes from './routes/reviewRoutes.js';
 
 // Load environment variables from .env file
 dotenv.config();
@@ -11,6 +14,10 @@ app.use(express.json()); // Allows parsing of req.body
 
 // Routes
 app.use("/api/users", userRoutes);
+app.use('/api/users', userRoutes);
+app.use('/api/tours', tourRoutes);
+app.use('/api/bookings', bookingRoutes);
+app.use('/api/reviews', reviewRoutes);
 
 // Connect to MongoDB and start server
 mongoose

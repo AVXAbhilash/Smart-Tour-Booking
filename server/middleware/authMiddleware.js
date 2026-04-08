@@ -1,5 +1,5 @@
 import jwt from "jsonwebtoken";
-import User from "../models/user.js"; // <-- Added the .js extension!
+import User from "../models/user.js";
 
 export const protect = async (req, res, next) => {
   let token;
@@ -10,11 +10,8 @@ export const protect = async (req, res, next) => {
   ) {
     try {
       token = req.headers.authorization.split(" ")[1];
-
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
-
       req.user = await User.findById(decoded.id).select("-password");
-
       next();
     } catch (error) {
       return res.status(401).json({ message: "Not authorized, token failed" });
@@ -23,5 +20,15 @@ export const protect = async (req, res, next) => {
 
   if (!token) {
     return res.status(401).json({ message: "No token, authorization denied" });
+  }
+};
+
+// --- ADD THIS NEW FUNCTION ---
+// Admin check middleware
+export const admin = (req, res, next) => {
+  if (req.user && req.user.role === "admin") {
+    next();
+  } else {
+    return res.status(403).json({ message: "Not authorized as an admin" });
   }
 };
