@@ -18,7 +18,7 @@ const userSchema = new mongoose.Schema(
       required: [true, 'Please add an email'],
       unique: true,
       trim: true,
-      lowercase: true, // Forces emails to lowercase to prevent duplicate registrations (e.g. Abhi@... vs abhi@...)
+      lowercase: true,
       match: [
         /^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/,
         'Please add a valid email format',
@@ -28,7 +28,7 @@ const userSchema = new mongoose.Schema(
       type: String,
       required: [true, 'Please add a password'],
       minlength: [6, 'Password must be at least 6 characters long'],
-      select: false, // Security feature: Prevents the password from being returned in standard DB queries
+      select: false, 
     },
     phone: {
       type: String,
@@ -36,7 +36,7 @@ const userSchema = new mongoose.Schema(
     },
     profileImage: {
       type: String,
-      default: '', // You can replace this with a default avatar URL later
+      default: '', 
     },
     role: {
       type: String,
@@ -48,7 +48,7 @@ const userSchema = new mongoose.Schema(
     },
   },
   {
-    timestamps: true, // Automatically creates createdAt and updatedAt
+    timestamps: true, 
   }
 );
 
@@ -56,21 +56,21 @@ const userSchema = new mongoose.Schema(
 // SECURITY MIDDLEWARE & METHODS
 // ==========================================
 
-// 1. Hash the password before saving to the database
-userSchema.pre('save', async function (next) {
-  // If the password hasn't been modified (e.g., user is just updating their phone number), skip hashing
+// --- THE FIX ---
+// 1. Removed 'next' parameter.
+// 2. Used 'return;' to safely exit the function if the password wasn't changed.
+userSchema.pre('save', async function () {
+  
   if (!this.isModified('password')) {
-    next();
+    return; // Safely exit without executing the code below
   }
 
-  // Generate a salt and hash the password
   const salt = await bcrypt.genSalt(10);
   this.password = await bcrypt.hash(this.password, salt);
 });
 
 // 2. Instance method to compare entered password during Login
 userSchema.methods.matchPassword = async function (enteredPassword) {
-  // Compares the plain text password from the frontend to the hashed one in the database
   return await bcrypt.compare(enteredPassword, this.password);
 };
 

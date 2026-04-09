@@ -1,9 +1,27 @@
 import express from 'express';
-import { createReview } from '../controllers/reviewController.js';
-import { protect } from '../middleware/authMiddleware.js';
+import { 
+  createReview, 
+  getTourReviews, 
+  getAllReviewsAdmin 
+} from '../controllers/reviewController.js';
+import { protect, admin } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
 
-router.route('/').post(protect, createReview);
+// ==========================================
+// ROOT ROUTES (/api/reviews)
+// ==========================================
+router.route('/')
+  // POST: Logged-in users can create reviews (Admins are blocked inside the controller)
+  .post(protect, createReview)
+  
+  // GET: Only Admins can view the master list of all reviews
+  .get(protect, admin, getAllReviewsAdmin);
+
+// ==========================================
+// PUBLIC ROUTES (/api/reviews/tour/:tourId)
+// ==========================================
+// GET: Anyone (even not logged in) can see reviews for a specific tour
+router.route('/tour/:tourId').get(getTourReviews);
 
 export default router;

@@ -11,7 +11,15 @@ export const protect = async (req, res, next) => {
     try {
       token = req.headers.authorization.split(" ")[1];
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
+      
       req.user = await User.findById(decoded.id).select("-password");
+
+      // --- THE FIX ---
+      // If the token is valid, but the user was deleted from the DB, stop here!
+      if (!req.user) {
+        return res.status(401).json({ message: "User no longer exists. Please log in again." });
+      }
+
       next();
     } catch (error) {
       return res.status(401).json({ message: "Not authorized, token failed" });
@@ -23,7 +31,6 @@ export const protect = async (req, res, next) => {
   }
 };
 
-// --- ADD THIS NEW FUNCTION ---
 // Admin check middleware
 export const admin = (req, res, next) => {
   if (req.user && req.user.role === "admin") {

@@ -40,17 +40,17 @@ const reviewSchema = new mongoose.Schema(
 // across different bookings (if that fits your business logic).
 // reviewSchema.index({ tour: 1, user: 1 }, { unique: true });
 
-// DOCUMENT MIDDLEWARE: Auto-populate user details for the frontend UI
-reviewSchema.pre(/^find/, function (next) {
+// --- THE FIX ---
+// Removed 'next' parameter and the 'next()' call. 
+// Also updated 'fullName' to 'firstName lastName' to match your User schema!
+reviewSchema.pre(/^find/, function () {
   this.populate({
     path: 'user',
-    select: 'fullName' // Only fetch the reviewer's name to display next to their comment
+    select: 'firstName lastName' // Fetch the reviewer's real name fields to display next to their comment
   }).populate({
     path: 'tour',
     select: 'title' // Helpful for the Admin dashboard when viewing all reviews
   });
-  
-  next();
 });
 
 const Review = mongoose.model('Review', reviewSchema);

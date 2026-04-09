@@ -1,13 +1,21 @@
 import express from 'express';
-import { createBooking, getMyBookings } from '../controllers/bookingController.js';
-import { protect } from '../middleware/authMiddleware.js';
+import { 
+  createBooking, 
+  getMyBookings, 
+  getAllBookingsAdmin 
+} from '../controllers/bookingController.js';
+import { protect, admin } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
 
-// Require user to be logged in for all booking routes
+// Require user to be logged in for ALL booking routes below this line
 router.use(protect); 
 
-router.route('/').post(createBooking);
+// Root route handles both creating a booking and fetching the admin master list
+router.route('/')
+  .post(createBooking)                 // Any logged-in user can book
+  .get(admin, getAllBookingsAdmin);    // ONLY logged-in admins can view all
+
 router.route('/mybookings').get(getMyBookings);
 
-export default router;
+export default router;  

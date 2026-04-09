@@ -54,16 +54,17 @@ const bookingSchema = new mongoose.Schema(
   }
 );
 
-// DOCUMENT MIDDLEWARE: Auto-populate user and tour details when querying bookings
-bookingSchema.pre(/^find/, function (next) {
+// --- THE FIX IS RIGHT HERE ---
+// Removed 'next' from the function parameters and deleted the 'next()' call.
+// Mongoose handles this automatically for .populate() now!
+bookingSchema.pre(/^find/, function () {
   this.populate({
     path: 'user',
-    select: 'fullName email' // Only fetch the fields you need
+    select: 'firstName email', // <-- Changed fullName to firstName based on your User model!
   }).populate({
     path: 'tour',
-    select: 'title location image price' 
+    select: 'title location image price',
   });
-  next();
 });
 
 const Booking = mongoose.model('Booking', bookingSchema);

@@ -3,12 +3,18 @@ import Booking from '../models/booking.js';
 
 // @desc    Create a review
 // @route   POST /api/reviews
-// @access  Private
+// @access  Private (Logged-in 'user' role only)
 export const createReview = async (req, res, next) => {
   try {
+    // 1. Explicitly block Admins from creating reviews
+    if (req.user.role === 'admin') {
+      res.status(403);
+      throw new Error("Admins are not permitted to leave reviews.");
+    }
+
     const { tour, rating, reviewText } = req.body;
 
-    // 1. Verify the user actually booked this tour
+    // 2. Verify the user actually booked this tour
     const booking = await Booking.findOne({ user: req.user._id, tour: tour });
     
     if (!booking) {
@@ -16,7 +22,7 @@ export const createReview = async (req, res, next) => {
       throw new Error("You can only review tours you have successfully booked.");
     }
 
-    // 2. Create the review
+    // 3. Create the review
     const review = await Review.create({
       user: req.user._id,
       tour,
@@ -25,7 +31,41 @@ export const createReview = async (req, res, next) => {
       reviewText
     });
 
-    res.status(201).json(review);
+    res.status(201).json({
+      message: "Review submitted successfully! Thank you for your feedback.",
+      review
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @desc    Get all reviews for a specific tour
+// @route   GET /api/reviews/tour/:tourId
+// @access  Public (Anyone can see reviews on the Tour Details page)
+export const getTourReviews = async (req, res, next) => {
+  try {
+    // req.params.tourId comes from the URL
+    const reviews = await Review.find({ tour: req.params.tourId });
+    
+    res.status(200).json(reviews);
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @desc    Get ALL reviews in the system
+// @route   GET /api/reviews
+// @access  Private / Admin Only (For the Admin Dashboard)
+export const getAllReviewsAdmin = async (req, res, next) => {
+  try {
+    const reviews = await Review.find();
+    
+    res.status(200).json({
+      message: "All system reviews retrieved successfully.",
+      count: reviews.length,
+      reviews
+    });
   } catch (error) {
     next(error);
   }

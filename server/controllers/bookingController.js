@@ -33,3 +33,21 @@ export const getMyBookings = async (req, res, next) => {
     next(error);
   }
 };
+
+// @desc    Get ALL bookings in the system
+// @route   GET /api/bookings
+// @access  Private / Admin Only
+export const getAllBookingsAdmin = async (req, res, next) => {
+  try {
+    // We don't pass a filter here because the admin needs to see everything.
+    const bookings = await Booking.find();
+    
+    res.status(200).json({
+      message: "All system bookings retrieved successfully.",
+      count: bookings.length,
+      bookings
+    });
+  } catch (error) {
+    next(error);
+  }
+};

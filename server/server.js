@@ -5,12 +5,17 @@ import userRoutes from "./routes/userRoutes.js";
 import tourRoutes from './routes/tourRoutes.js';
 import bookingRoutes from './routes/bookingRoutes.js';
 import reviewRoutes from './routes/reviewRoutes.js';
+import errorHandler from './middleware/errorMiddleware.js';
+
+const PORT = process.env.PORT || 5200;
 
 // Load environment variables from .env file
 dotenv.config();
 
 const app = express();
 app.use(express.json()); // Allows parsing of req.body
+
+app.use(errorHandler);
 
 // Routes
 app.use("/api/users", userRoutes);
