@@ -1,10 +1,10 @@
-import User from '../models/user.js';
-import jwt from 'jsonwebtoken';
+import User from "../models/user.js";
+import jwt from "jsonwebtoken";
 
 // Helper function to generate JWT
 const generateToken = (id) => {
   return jwt.sign({ id }, process.env.JWT_SECRET, {
-    expiresIn: '30d',
+    expiresIn: "30d",
   });
 };
 
@@ -13,7 +13,6 @@ const generateToken = (id) => {
 // @access  Public
 export const registerUser = async (req, res, next) => {
   try {
-    // 1. Destructure 'role' from req.body
     const { firstName, lastName, email, password, phone, role } = req.body;
 
     const userExists = await User.findOne({ email });
@@ -22,14 +21,13 @@ export const registerUser = async (req, res, next) => {
       throw new Error("User already exists");
     }
 
-    // 2. Add 'role' to the create object
     const user = await User.create({
       firstName,
       lastName,
       email,
       password,
       phone,
-      role: role || 'user' // Default to 'user' if role isn't provided
+      role: role || "user",
     });
 
     if (user) {
@@ -38,7 +36,7 @@ export const registerUser = async (req, res, next) => {
         _id: user._id,
         firstName: user.firstName,
         email: user.email,
-        role: user.role, // This will now show 'admin' in the response
+        role: user.role,
         token: generateToken(user._id),
       });
     } else {
@@ -57,16 +55,16 @@ export const loginUser = async (req, res, next) => {
   try {
     const { email, password } = req.body;
 
-    // Find user and explicitly select the password field since we hid it in the model
-    const user = await User.findOne({ email }).select('+password');
+    const user = await User.findOne({ email }).select("+password");
 
     if (user && (await user.matchPassword(password))) {
       res.json({
-        message: "Login successful! Welcome back.", // <-- Added message
+        message: "Login successful! Welcome back.",
         _id: user._id,
         firstName: user.firstName,
         email: user.email,
         role: user.role,
+        profileImage: user.profileImage,
         token: generateToken(user._id),
       });
     } else {
@@ -82,8 +80,8 @@ export const loginUser = async (req, res, next) => {
 // @route   GET /api/users/logout
 // @access  Public
 export const logoutUser = (req, res) => {
-  res.status(200).json({ 
-    message: "Logged out successfully. See you next time!" // <-- Streamlined message
+  res.status(200).json({
+    message: "Logged out successfully. See you next time!",
   });
 };
 
@@ -92,19 +90,97 @@ export const logoutUser = (req, res) => {
 // @access  Private
 export const getUserProfile = async (req, res, next) => {
   try {
-    // req.user is populated by your protect middleware
     const user = await User.findById(req.user._id);
 
     if (user) {
       res.json({
-        message: "Profile data retrieved successfully.", // <-- Added message
+        message: "Profile data retrieved successfully.",
         _id: user._id,
         firstName: user.firstName,
         lastName: user.lastName,
         email: user.email,
         phone: user.phone,
         role: user.role,
+        profileImage: user.profileImage,
       });
+    } else {
+      res.status(404);
+      throw new Error("User not found");
+    }
+  } catch (error) {
+    next(error);
+  }
+};
+
+// ==========================================
+// NEW CONTROLLERS BELOW
+// ==========================================
+
+// @desc    Update user profile data
+// @route   PUT /api/users/profile
+// @access  Private
+export const updateUserProfile = async (req, res, next) => {
+  try {
+    const user = await User.findById(req.user._id);
+
+    // Inside updateUserProfile...
+
+    if (user) {
+      user.firstName = req.body.firstName || user.firstName;
+      user.lastName = req.body.lastName || user.lastName;
+      user.email = req.body.email || user.email;
+      user.phone = req.body.phone || user.phone;
+
+      // --- ADD THIS LINE ---
+      user.profileImage = req.body.profileImage || user.profileImage;
+
+      const updatedUser = await user.save();
+
+      res.json({
+        message: "Profile updated successfully.",
+        _id: updatedUser._id,
+        firstName: updatedUser.firstName,
+        lastName: updatedUser.lastName,
+        email: updatedUser.email,
+        phone: updatedUser.phone,
+        profileImage: updatedUser.profileImage, // <-- Return the new image
+      });
+      // ... rest of the function ...
+    } else {
+      res.status(404);
+      throw new Error("User not found");
+    }
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @desc    Update user password
+// @route   PUT /api/users/password
+// @access  Private
+export const updateUserPassword = async (req, res, next) => {
+  try {
+    const { currentPassword, newPassword } = req.body;
+
+    // We MUST explicitly select '+password' here because we hid it in the schema,
+    // and we need it to verify the currentPassword!
+    const user = await User.findById(req.user._id).select("+password");
+
+    if (user) {
+      // 1. Check if the current password they typed is correct
+      const isMatch = await user.matchPassword(currentPassword);
+
+      if (!isMatch) {
+        res.status(401);
+        throw new Error("Incorrect current password.");
+      }
+
+      // 2. Assign the new password.
+      // Your Mongoose pre('save') hook will automatically hash this before saving!
+      user.password = newPassword;
+      await user.save();
+
+      res.json({ message: "Password updated successfully." });
     } else {
       res.status(404);
       throw new Error("User not found");

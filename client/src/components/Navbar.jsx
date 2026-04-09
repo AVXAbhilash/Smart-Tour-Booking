@@ -69,9 +69,10 @@ const Navbar = () => {
     e.preventDefault();
     setIsProfileOpen(false);
     setIsOpen(false);
-    localStorage.removeItem('userToken'); 
+    localStorage.removeItem('userToken');
+    localStorage.removeItem('userInfo');
     localStorage.removeItem('userProfileImage'); // Clear image on logout
-    navigate('/'); 
+    navigate('/');
   };
 
   return (

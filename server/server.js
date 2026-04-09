@@ -1,4 +1,5 @@
 import express from "express";
+import cors from 'cors';
 import dotenv from "dotenv";
 import mongoose from "mongoose";
 import userRoutes from "./routes/userRoutes.js";
@@ -6,18 +7,34 @@ import tourRoutes from './routes/tourRoutes.js';
 import bookingRoutes from './routes/bookingRoutes.js';
 import reviewRoutes from './routes/reviewRoutes.js';
 import errorHandler from './middleware/errorMiddleware.js';
+import path from 'path'; // <-- Import path module
+import uploadRoutes from './routes/uploadRoutes.js'; // <-- Import your new route
 
 const PORT = process.env.PORT || 5200;
 
 // Load environment variables from .env file
 dotenv.config();
 
+
+
 const app = express();
+
+app.use(cors({
+  origin: 'http://localhost:3000', // The URL of your React app
+  credentials: true 
+}));
+
 app.use(express.json()); // Allows parsing of req.body
+
+app.use('/api/upload', uploadRoutes);
+
+const __dirname = path.resolve();
+app.use('/uploads', express.static(path.join(__dirname, '/uploads')));
 
 app.use(errorHandler);
 
 // Routes
+app.use(express.json());
 app.use("/api/users", userRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/tours', tourRoutes);

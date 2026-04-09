@@ -1,27 +1,68 @@
 import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom'; // 1. Imported useNavigate
+import { Link, useNavigate } from 'react-router-dom';
 import { User, Mail, Lock, ArrowRight, Globe } from 'lucide-react';
+import axios from 'axios'; // <-- 1. Import axios
 
 const Register = () => {
-  // 2. Initialized the navigate hook inside the component
   const navigate = useNavigate();
   const [formData, setFormData] = useState({ name: '', email: '', password: '', confirmPassword: '' });
+  
+  // 2. Add loading and error states
+  const [error, setError] = useState(null);
+  const [loading, setLoading] = useState(false);
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    setError(null);
+    
+    // Check if passwords match before bothering the server
     if(formData.password !== formData.confirmPassword) {
-      alert("Passwords don't match!");
+      setError("Passwords don't match!");
       return;
     }
-    console.log('Registration attempt:', formData);
-    // Add registration logic here later
-    
-    // 3. Redirect to home upon successful registration mock
-    navigate('/home');
+
+    setLoading(true);
+
+    // 3. Clever fix: Split the single "name" input into firstName and lastName for your backend
+    const nameParts = formData.name.trim().split(' ');
+    const firstName = nameParts[0];
+    // If they only type one word, default their last name to an empty string or a placeholder
+    const lastName = nameParts.length > 1 ? nameParts.slice(1).join(' ') : 'User'; 
+
+    try {
+      // 4. Send the request to your Express backend
+      const response = await axios.post('http://localhost:5200/api/users/register', {
+        firstName,
+        lastName,
+        email: formData.email,
+        password: formData.password
+        // Note: phone and profileImage are optional in your model, so we don't need them here!
+      });
+
+      const userData = response.data;
+
+      // 5. Save the token and user info so they are instantly logged in
+      localStorage.setItem('userToken', userData.token);
+      localStorage.setItem('userInfo', JSON.stringify({
+        _id: userData._id,
+        firstName: userData.firstName,
+        email: userData.email,
+        role: userData.role
+      }));
+
+      // 6. Redirect them to the home page!
+      navigate('/');
+
+    } catch (err) {
+      // Grab the exact error message from your backend (e.g., "User already exists")
+      setError(err.response?.data?.message || 'Registration failed. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -50,6 +91,13 @@ const Register = () => {
           <h2 className="text-3xl font-bold text-white mb-2">Join the Journey</h2>
           <p className="text-primary-100/70">Create an account to book your next adventure.</p>
         </div>
+
+        {/* 7. Display the backend error message if registration fails */}
+        {error && (
+          <div className="bg-red-500/20 border border-red-500/50 text-red-200 p-3 rounded-xl mb-6 text-sm text-center">
+            {error}
+          </div>
+        )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
@@ -96,6 +144,7 @@ const Register = () => {
                 type="password" 
                 name="password"
                 required
+                minLength="6" // Let's enforce your backend's 6-character rule on the frontend too!
                 onChange={handleChange}
                 className="w-full pl-11 pr-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-primary-200/50 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all"
                 placeholder="••••••••"
@@ -122,9 +171,12 @@ const Register = () => {
 
           <button 
             type="submit" 
-            className="w-full bg-primary-600 hover:bg-primary-700 text-white font-bold py-3.5 rounded-xl transition-all shadow-lg shadow-primary-500/30 flex items-center justify-center gap-2 mt-6"
+            disabled={loading}
+            className={`w-full ${loading ? 'bg-primary-500 cursor-not-allowed' : 'bg-primary-600 hover:bg-primary-700'} text-white font-bold py-3.5 rounded-xl transition-all shadow-lg shadow-primary-500/30 flex items-center justify-center gap-2 mt-6`}
           >
-            Create Account <ArrowRight size={18} />
+            {loading ? 'Creating Account...' : (
+              <>Create Account <ArrowRight size={18} /></>
+            )}
           </button>
         </form>
 
