@@ -7,7 +7,7 @@ import { MapPin, Clock, Star } from 'lucide-react';
 const TourCard = ({ tour }) => {
   return (
     <Link
-      to={`/tours/${tour.id}`}
+      to={`/tours/${tour.tourId}`}
       className="group bg-white dark:bg-slate-900 rounded-[2.5rem] overflow-hidden shadow-sm hover:shadow-2xl dark:hover:shadow-primary-900/20 transition-all duration-500 border border-gray-100 dark:border-slate-800 flex flex-col h-full hover:-translate-y-2"
     >
       {/* Image Container */}

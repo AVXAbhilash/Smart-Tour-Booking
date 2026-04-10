@@ -70,3 +70,15 @@ export const getAllReviewsAdmin = async (req, res, next) => {
     next(error);
   }
 };
+
+// @desc    Get logged in user's reviews
+// @route   GET /api/reviews/myreviews
+// @access  Private
+export const getMyReviews = async (req, res, next) => {
+  try {
+    const reviews = await Review.find({ user: req.user._id });
+    res.status(200).json(reviews);
+  } catch (error) {
+    next(error);
+  }
+};

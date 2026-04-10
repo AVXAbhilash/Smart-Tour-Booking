@@ -30,3 +30,25 @@ export const createTour = async (req, res, next) => {
     next(error);
   }
 };
+
+// ... existing getTours and createTour functions ...
+
+// @desc    Get single tour by custom tourId
+// @route   GET /api/tours/:id
+// @access  Public
+export const getTourById = async (req, res, next) => {
+  try {
+    // We use findOne to search specifically by your custom 'tourId' field
+    // req.params.id will be whatever is in the URL (e.g., 'TR-101')
+    const tour = await Tour.findOne({ tourId: req.params.id });
+
+    if (tour) {
+      res.status(200).json(tour);
+    } else {
+      res.status(404);
+      throw new Error("Tour not found");
+    }
+  } catch (error) {
+    next(error);
+  }
+};

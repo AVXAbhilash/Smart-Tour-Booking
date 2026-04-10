@@ -2,7 +2,8 @@ import express from 'express';
 import { 
   createBooking, 
   getMyBookings, 
-  getAllBookingsAdmin 
+  getAllBookingsAdmin,
+  updateBooking
 } from '../controllers/bookingController.js';
 import { protect, admin } from '../middleware/authMiddleware.js';
 
@@ -17,5 +18,12 @@ router.route('/')
   .get(admin, getAllBookingsAdmin);    // ONLY logged-in admins can view all
 
 router.route('/mybookings').get(getMyBookings);
+
+
+
+// --- NEW ROUTE ---
+// Target a specific booking by ID to update it
+router.route('/:id')
+  .put(updateBooking); // Protect is already applied via router.use(protect) above
 
 export default router;  

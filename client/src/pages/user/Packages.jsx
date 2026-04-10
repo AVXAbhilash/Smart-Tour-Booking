@@ -5,12 +5,12 @@ import {
   Filter,
   ChevronDown,
   SlidersHorizontal,
+  Loader // Added a loader icon for the fetching state
 } from "lucide-react";
-import { tourData } from "../data/tours";
+import axios from "axios"; // <-- 1. Import Axios
 import TourCard from "../../components/TourCard";
 
 const durationRanges = {
-  
   "1 - 3 Days": [1, 3],
   "4 - 7 Days": [4, 7],
   "8 - 14 Days": [8, 14],
@@ -21,13 +21,37 @@ const Packages = () => {
   const [searchParams] = useSearchParams();
   const initialSearch = searchParams.get("search") || ""; 
 
+  // --- 2. NEW STATE FOR DATABASE DATA ---
+  const [tours, setTours] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
   const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false);
-  
-  // --- FIX: INCREASED DEFAULT MAX PRICE TO 50,000 ---
   const [maxPrice, setMaxPrice] = useState(50000); 
   const [searchQuery, setSearchQuery] = useState(initialSearch);
   const [selectedDurations, setSelectedDurations] = useState([]);
 
+  // --- 3. FETCH TOURS FROM BACKEND ON LOAD ---
+  useEffect(() => {
+    const fetchTours = async () => {
+      try {
+        // Make sure this matches your actual Express route for fetching all tours!
+        const response = await axios.get("http://localhost:5200/api/tours");
+        
+        // Depending on how you wrote your backend, it might be response.data, 
+        // or response.data.tours if you sent it as an object. Adjust if necessary!
+        setTours(response.data.tours || response.data); 
+        setLoading(false);
+      } catch (err) {
+        setError(err.response?.data?.message || "Failed to fetch tours from the server.");
+        setLoading(false);
+      }
+    };
+
+    fetchTours();
+  }, []);
+
+  // Update search query if URL changes
   useEffect(() => {
     const urlSearch = searchParams.get("search");
     if (urlSearch !== null) {
@@ -43,24 +67,22 @@ const Packages = () => {
     );
   };
 
-  const filteredTours = tourData.filter((tour) => {
-    // 1. Price Check
+  // --- 4. FILTER THE LIVE DATA INSTEAD OF DUMMY DATA ---
+  const filteredTours = tours.filter((tour) => {
     const matchesPrice = tour.price <= maxPrice;
 
-    // 2. Search Check
     const query = searchQuery.toLowerCase();
     const matchesSearch = 
-      tour.title.toLowerCase().includes(query) ||
-      tour.location.toLowerCase().includes(query) ||
+      tour.title?.toLowerCase().includes(query) ||
+      tour.location?.toLowerCase().includes(query) ||
       (tour.type && tour.type.toLowerCase().includes(query)) ||
       (tour.price && tour.price.toString().includes(query)); 
 
-    // 3. Duration Check
     const matchesDuration = 
       selectedDurations.length === 0 || 
       selectedDurations.some((rangeKey) => {
         const [min, max] = durationRanges[rangeKey];
-        return tour.days >= min && tour.days <= max;
+        return tour.days >= min && tour.days <= max; // Ensure your Mongoose Tour model uses 'days' or 'duration'
       });
 
     return matchesPrice && matchesSearch && matchesDuration;
@@ -88,6 +110,7 @@ const Packages = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-8 md:-mt-10 relative z-20">
         <div className="flex flex-col lg:flex-row gap-8">
           
+          {/* Mobile Filter Button */}
           <button
             className="lg:hidden w-full bg-white dark:bg-slate-900 p-4 rounded-2xl shadow-sm border border-gray-100 dark:border-slate-800 font-bold text-slate-700 dark:text-slate-200 flex justify-center items-center gap-2"
             onClick={() => setIsMobileFilterOpen(!isMobileFilterOpen)}
@@ -95,6 +118,7 @@ const Packages = () => {
             <SlidersHorizontal size={18} /> Filters & Sorting
           </button>
 
+          {/* Sidebar Filters */}
           <aside className={`w-full lg:w-1/4 ${isMobileFilterOpen ? "block" : "hidden"} lg:block`}>
             <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl shadow-xl lg:shadow-sm border border-gray-100 dark:border-slate-800 sticky top-28 transition-colors">
               <div className="flex items-center gap-2 font-bold text-lg text-slate-900 dark:text-white mb-6 pb-4 border-b border-gray-100 dark:border-slate-800">
@@ -123,7 +147,6 @@ const Packages = () => {
                 <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">
                   Max Price: ₹{maxPrice.toLocaleString()}
                 </label>
-                {/* FIX: INCREASED MAX TO 50,000 AND STEP TO 500 */}
                 <input
                   type="range"
                   min="500"
@@ -162,7 +185,7 @@ const Packages = () => {
               {/* Clear Filters Button */}
               <button 
                 onClick={() => {
-                  setMaxPrice(50000); // FIX: Reset to new max
+                  setMaxPrice(50000); 
                   setSearchQuery("");
                   setSelectedDurations([]);
                 }}
@@ -173,11 +196,11 @@ const Packages = () => {
             </div>
           </aside>
 
-          {/* Right Column */}
+          {/* Right Column (Tours Grid) */}
           <main className="w-full lg:w-3/4">
             <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl shadow-sm border border-gray-100 dark:border-slate-800 mb-6 flex flex-col sm:flex-row justify-between items-center gap-4 transition-colors">
               <p className="text-slate-600 dark:text-slate-400 font-medium">
-                Showing <span className="font-bold text-slate-900 dark:text-white">{filteredTours.length}</span> tours found
+                {loading ? "Fetching tours..." : `Showing ${filteredTours.length} tours found`}
               </p>
 
               <div className="flex items-center gap-2 w-full sm:w-auto">
@@ -194,27 +217,40 @@ const Packages = () => {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {filteredTours.length > 0 ? (
-                filteredTours.map((tour) => (
-                  <TourCard key={tour.id} tour={tour} />
-                ))
-              ) : (
-                <div className="col-span-1 md:col-span-2 text-center py-20 bg-white dark:bg-slate-900 rounded-3xl border border-gray-100 dark:border-slate-800">
-                  <p className="text-slate-500 dark:text-slate-400 font-medium text-lg">
-                    No tours match your current filters.
-                  </p>
-                  <button 
-                    onClick={() => { setMaxPrice(50000); setSearchQuery(""); setSelectedDurations([]); }}
-                    className="mt-4 text-primary-600 font-bold hover:underline"
-                  >
-                    Clear all filters
-                  </button>
-                </div>
-              )}
-            </div>
+            {/* --- 5. HANDLE LOADING, ERRORS, AND EMPTY STATES --- */}
+            {loading ? (
+              <div className="flex flex-col items-center justify-center py-20">
+                <Loader className="animate-spin text-primary-600 mb-4" size={48} />
+                <p className="text-slate-500 dark:text-slate-400 font-medium text-lg">Loading amazing adventures...</p>
+              </div>
+            ) : error ? (
+              <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-3xl p-8 text-center">
+                <p className="text-red-600 dark:text-red-400 font-bold text-lg">{error}</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {filteredTours.length > 0 ? (
+                  filteredTours.map((tour) => (
+                    // Make sure you use _id if it's coming directly from MongoDB!
+                    <TourCard key={tour._id || tour.id} tour={tour} />
+                  ))
+                ) : (
+                  <div className="col-span-1 md:col-span-2 text-center py-20 bg-white dark:bg-slate-900 rounded-3xl border border-gray-100 dark:border-slate-800">
+                    <p className="text-slate-500 dark:text-slate-400 font-medium text-lg">
+                      No tours match your current filters.
+                    </p>
+                    <button 
+                      onClick={() => { setMaxPrice(50000); setSearchQuery(""); setSelectedDurations([]); }}
+                      className="mt-4 text-primary-600 font-bold hover:underline"
+                    >
+                      Clear all filters
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
 
-            {filteredTours.length > 0 && (
+            {!loading && filteredTours.length > 0 && (
               <div className="mt-10 flex justify-center">
                 <button className="bg-white dark:bg-slate-900 border-2 border-gray-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:border-primary-600 dark:hover:border-primary-500 hover:text-primary-600 dark:hover:text-primary-400 font-bold py-3 px-8 rounded-xl transition-colors">
                   Load More Packages

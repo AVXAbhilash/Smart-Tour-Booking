@@ -7,47 +7,41 @@ import tourRoutes from './routes/tourRoutes.js';
 import bookingRoutes from './routes/bookingRoutes.js';
 import reviewRoutes from './routes/reviewRoutes.js';
 import errorHandler from './middleware/errorMiddleware.js';
-import path from 'path'; // <-- Import path module
-import uploadRoutes from './routes/uploadRoutes.js'; // <-- Import your new route
+import path from 'path'; 
+import uploadRoutes from './routes/uploadRoutes.js';
 
-const PORT = process.env.PORT || 5200;
-
-// Load environment variables from .env file
 dotenv.config();
-
-
 
 const app = express();
 
 app.use(cors({
-  origin: 'http://localhost:3000', // The URL of your React app
+  origin: 'http://localhost:3000', 
   credentials: true 
 }));
 
-app.use(express.json()); // Allows parsing of req.body
+app.use(express.json()); 
 
-app.use('/api/upload', uploadRoutes);
-
+// Static folder for images
 const __dirname = path.resolve();
 app.use('/uploads', express.static(path.join(__dirname, '/uploads')));
 
-app.use(errorHandler);
-
 // Routes
-app.use(express.json());
+app.use('/api/upload', uploadRoutes);
 app.use("/api/users", userRoutes);
-app.use('/api/users', userRoutes);
 app.use('/api/tours', tourRoutes);
 app.use('/api/bookings', bookingRoutes);
 app.use('/api/reviews', reviewRoutes);
+
+// THE ERROR HANDLER MUST BE THE VERY LAST APP.USE()!
+app.use(errorHandler);
 
 // Connect to MongoDB and start server
 mongoose
   .connect(process.env.MONGODB_URI)
   .then(() => {
     console.log("Connected to MongoDB");
-    app.listen(process.env.PORT, () => {
-      console.log(`Server running on port ${process.env.PORT}`);
+    app.listen(process.env.PORT || 5200, () => {
+      console.log(`Server running on port ${process.env.PORT || 5200}`);
     });
   })
   .catch((error) => console.log(error));

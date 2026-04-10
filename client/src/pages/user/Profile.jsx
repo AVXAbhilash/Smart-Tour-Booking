@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import { User, Mail, Phone, Lock, Camera, Save, Shield } from "lucide-react";
-import axios from "axios"; // <-- 1. Import Axios
-import { useNavigate } from "react-router-dom"; // <-- 2. Import navigate to redirect if not logged in
+import axios from "axios";
+import { useNavigate } from "react-router-dom";
 
 const Profile = () => {
   const navigate = useNavigate();
@@ -10,6 +10,12 @@ const Profile = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [successMessage, setSuccessMessage] = useState(null);
+
+  // --- NEW STATE FOR LIVE STATS ---
+  const [stats, setStats] = useState({
+    toursBooked: 0,
+    reviewsCount: 0
+  });
 
   const [profileData, setProfileData] = useState({
     firstName: "",
@@ -33,13 +39,13 @@ const Profile = () => {
     confirmPassword: "",
   });
 
-  // --- 3. FETCH USER DATA ON LOAD ---
+  // --- 3. FETCH USER DATA & STATS ON LOAD ---
   useEffect(() => {
-    const fetchProfile = async () => {
+    const fetchProfileData = async () => {
       try {
         const token = localStorage.getItem("userToken");
         if (!token) {
-          navigate("/login"); // Boot them out if they aren't logged in!
+          navigate("/login");
           return;
         }
 
@@ -47,21 +53,37 @@ const Profile = () => {
           headers: { Authorization: `Bearer ${token}` },
         };
 
-        // Hit the GET profile route you built in your userController!
-        const response = await axios.get(
-          "http://localhost:5200/api/users/profile",
-          config,
-        );
+        // Fetch Profile and Bookings at the exact same time for better performance
+        const [profileRes, bookingsRes] = await Promise.all([
+          axios.get("http://localhost:5200/api/users/profile", config),
+          axios.get("http://localhost:5200/api/bookings/mybookings", config)
+        ]);
+
+        // Attempt to fetch reviews (Wrapped in try/catch just in case the backend route isn't ready)
+        let fetchedReviewCount = 0;
+        try {
+          const reviewsRes = await axios.get("http://localhost:5200/api/reviews/myreviews", config);
+          fetchedReviewCount = reviewsRes.data.length;
+        } catch (err) {
+          console.warn("Could not fetch reviews. Route might be missing on backend.");
+        }
 
         setProfileData({
-          firstName: response.data.firstName || "",
-          lastName: response.data.lastName || "",
-          email: response.data.email || "",
-          phone: response.data.phone || "",
+          firstName: profileRes.data.firstName || "",
+          lastName: profileRes.data.lastName || "",
+          email: profileRes.data.email || "",
+          phone: profileRes.data.phone || "",
         });
-        if (response.data.profileImage) {
-          setProfileImage(response.data.profileImage);
-          localStorage.setItem("userProfileImage", response.data.profileImage);
+
+        // Update the live stats state!
+        setStats({
+          toursBooked: bookingsRes.data.length || 0,
+          reviewsCount: fetchedReviewCount
+        });
+
+        if (profileRes.data.profileImage) {
+          setProfileImage(profileRes.data.profileImage);
+          localStorage.setItem("userProfileImage", profileRes.data.profileImage);
           window.dispatchEvent(new Event("profileImageUpdated"));
         }
         setLoading(false);
@@ -71,7 +93,7 @@ const Profile = () => {
       }
     };
 
-    fetchProfile();
+    fetchProfileData();
   }, [navigate]);
 
   const handleProfileChange = (e) => {
@@ -82,16 +104,13 @@ const Profile = () => {
     setPasswordData({ ...passwordData, [e.target.name]: e.target.value });
   };
 
-  // --- NEW IMAGE HANDLER ---
   const handleImageChange = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
 
-    // 1. Set loading state so the user knows something is happening
     setLoading(true);
     setError(null);
 
-    // 2. Files require 'FormData', standard JSON won't work!
     const formData = new FormData();
     formData.append("image", file);
 
@@ -99,28 +118,23 @@ const Profile = () => {
       const token = localStorage.getItem("userToken");
       const config = {
         headers: {
-          "Content-Type": "multipart/form-data", // Tell the server a file is coming
+          "Content-Type": "multipart/form-data",
           Authorization: `Bearer ${token}`,
         },
       };
 
-      // 3. Upload the file to your new Multer route
       const { data: imagePath } = await axios.post(
         "http://localhost:5200/api/upload",
         formData,
         config,
       );
 
-      // The server gives us back a path like "/uploads/image-123.jpg".
-      // We append your server URL to it so React can display it!
       const fullImageUrl = `http://localhost:5200${imagePath}`;
 
-      // 4. Update the visual UI immediately
       setProfileImage(fullImageUrl);
       localStorage.setItem("userProfileImage", fullImageUrl);
       window.dispatchEvent(new Event("profileImageUpdated"));
 
-      // 5. Automatically save this new image URL to their MongoDB profile!
       const profileConfig = { headers: { Authorization: `Bearer ${token}` } };
       await axios.put(
         "http://localhost:5200/api/users/profile",
@@ -136,7 +150,6 @@ const Profile = () => {
     }
   };
 
-  // --- 4. HANDLE PROFILE UPDATES ---
   const handleProfileSubmit = async (e) => {
     e.preventDefault();
     setError(null);
@@ -146,7 +159,6 @@ const Profile = () => {
       const token = localStorage.getItem("userToken");
       const config = { headers: { Authorization: `Bearer ${token}` } };
 
-      // NOTE: You will need to create a PUT /api/users/profile route on your backend to handle this!
       const response = await axios.put(
         "http://localhost:5200/api/users/profile",
         profileData,
@@ -155,7 +167,6 @@ const Profile = () => {
 
       setSuccessMessage("Profile updated successfully!");
 
-      // Update local storage so the Navbar name changes instantly
       const currentInfo = JSON.parse(localStorage.getItem("userInfo"));
       localStorage.setItem(
         "userInfo",
@@ -169,7 +180,6 @@ const Profile = () => {
     }
   };
 
-  // --- 5. HANDLE PASSWORD UPDATES ---
   const handlePasswordSubmit = async (e) => {
     e.preventDefault();
     setError(null);
@@ -184,7 +194,6 @@ const Profile = () => {
       const token = localStorage.getItem("userToken");
       const config = { headers: { Authorization: `Bearer ${token}` } };
 
-      // NOTE: You will need to create a PUT /api/users/password route on your backend to handle this!
       await axios.put(
         "http://localhost:5200/api/users/password",
         {
@@ -216,7 +225,6 @@ const Profile = () => {
   return (
     <div className="bg-gray-50 dark:bg-slate-950 min-h-screen py-12 transition-colors duration-300">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 mt-8">
-        {/* --- ALERTS --- */}
         {error && (
           <div className="bg-red-500/10 border border-red-500 text-red-500 p-4 rounded-xl mb-6">
             {error}
@@ -267,7 +275,8 @@ const Profile = () => {
               <div className="grid grid-cols-2 gap-4 border-t border-gray-100 dark:border-slate-800 pt-6">
                 <div>
                   <p className="text-3xl font-black text-primary-600 dark:text-primary-400">
-                    12
+                    {/* Replaced hardcoded 12 */}
+                    {stats.toursBooked}
                   </p>
                   <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">
                     Tours Booked
@@ -275,7 +284,8 @@ const Profile = () => {
                 </div>
                 <div>
                   <p className="text-3xl font-black text-primary-600 dark:text-primary-400">
-                    4
+                    {/* Replaced hardcoded 4 */}
+                    {stats.reviewsCount}
                   </p>
                   <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">
                     Reviews

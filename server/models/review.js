@@ -16,7 +16,6 @@ const reviewSchema = new mongoose.Schema(
       type: mongoose.Schema.ObjectId,
       ref: 'Booking',
       required: [true, 'A review must be linked to a specific booking to verify attendance'],
-      // By setting this to unique, you guarantee that a user can only leave ONE review per booking.
       unique: true, 
     },
     rating: {
@@ -32,25 +31,57 @@ const reviewSchema = new mongoose.Schema(
     },
   },
   {
-    timestamps: true, // Automatically creates createdAt and updatedAt
+    timestamps: true,
   }
 );
 
-// OPTIONAL BUT RECOMMENDED: Prevent a user from reviewing the SAME tour multiple times 
-// across different bookings (if that fits your business logic).
-// reviewSchema.index({ tour: 1, user: 1 }, { unique: true });
+// --- THE FIX: STRICT COMPOUND INDEX ---
+// Prevents a user from reviewing the SAME tour multiple times across different bookings.
+reviewSchema.index({ tour: 1, user: 1 }, { unique: true });
+// --------------------------------------
 
-// --- THE FIX ---
-// Removed 'next' parameter and the 'next()' call. 
-// Also updated 'fullName' to 'firstName lastName' to match your User schema!
 reviewSchema.pre(/^find/, function () {
   this.populate({
     path: 'user',
-    select: 'firstName lastName' // Fetch the reviewer's real name fields to display next to their comment
+    select: 'firstName lastName' 
   }).populate({
     path: 'tour',
-    select: 'title' // Helpful for the Admin dashboard when viewing all reviews
+    select: 'title' 
   });
+});
+
+// ==========================================
+// DYNAMIC RATING CALCULATOR
+// ==========================================
+reviewSchema.statics.calcAverageRatings = async function (tourId) {
+  const stats = await this.aggregate([
+    {
+      $match: { tour: tourId }, 
+    },
+    {
+      $group: {
+        _id: '$tour',
+        nRating: { $sum: 1 }, 
+        avgRating: { $avg: '$rating' }, 
+      },
+    },
+  ]);
+
+  if (stats.length > 0) {
+    await mongoose.model('Tour').findByIdAndUpdate(tourId, {
+      numReviews: stats[0].nRating,
+      rating: Math.round(stats[0].avgRating * 10) / 10, 
+    });
+  } else {
+    await mongoose.model('Tour').findByIdAndUpdate(tourId, {
+      numReviews: 0,
+      rating: 5.0, 
+    });
+  }
+};
+
+reviewSchema.post('save', function () {
+  this.constructor.calcAverageRatings(this.tour);
 });
 
 const Review = mongoose.model('Review', reviewSchema);

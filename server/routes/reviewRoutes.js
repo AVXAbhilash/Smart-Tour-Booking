@@ -2,7 +2,8 @@ import express from 'express';
 import { 
   createReview, 
   getTourReviews, 
-  getAllReviewsAdmin 
+  getAllReviewsAdmin,
+  getMyReviews
 } from '../controllers/reviewController.js';
 import { protect, admin } from '../middleware/authMiddleware.js';
 
@@ -23,5 +24,7 @@ router.route('/')
 // ==========================================
 // GET: Anyone (even not logged in) can see reviews for a specific tour
 router.route('/tour/:tourId').get(getTourReviews);
+// Add this right BEFORE the /tour/:tourId route:
+router.route('/myreviews').get(protect, getMyReviews);
 
 export default router;
