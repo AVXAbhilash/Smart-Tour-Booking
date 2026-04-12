@@ -87,7 +87,7 @@ npm run dev
 ## 📸 Screenshots
 
 | Dashboard Overview |
-![alt text](<Screenshot 2026-04-12 190707.png>)
+![alt text](<Screenshot 2026-04-12 191358.png>)
 ![alt text](<Screenshot 2026-04-12 184311.png>)
 
 | Manage Tours |
