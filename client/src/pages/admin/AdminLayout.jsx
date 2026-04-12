@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { LayoutDashboard, Map, Users, Star, CalendarCheck, Settings, LogOut, Globe } from 'lucide-react';
 
@@ -6,11 +6,38 @@ const AdminLayout = ({ children, title = "Admin Panel" }) => {
   const location = useLocation();
   const navigate = useNavigate();
 
+  // Get current admin details
+  const userInfo = JSON.parse(localStorage.getItem("userInfo")) || {};
+  // --- STATE FOR DYNAMIC AVATAR ---
+  const [profileImage, setProfileImage] = useState(() => {
+  
+  
+    // Check database/local storage first, if empty, use a generic dark-theme avatar
+    return localStorage.getItem("userProfileImage") || `https://ui-avatars.com/api/?name=${userInfo.firstName || 'Admin'}&background=0f172a&color=38bdf8`;
+  });
+
+  // --- LISTEN FOR IMAGE UPDATES ---
+  // This ensures the avatar changes instantly if they update it on the Account page!
+  useEffect(() => {
+    const handleProfileUpdate = () => {
+      const updatedImage = localStorage.getItem("userProfileImage");
+      if (updatedImage) {
+        setProfileImage(updatedImage);
+      }
+    };
+
+    window.addEventListener("profileImageUpdated", handleProfileUpdate);
+    return () => window.removeEventListener("profileImageUpdated", handleProfileUpdate);
+  }, []);
+
   const isActive = (path) => location.pathname === path;
 
   const handleLogout = () => {
+    // Clear ALL auth data on logout
     localStorage.removeItem('userToken');
-    navigate('/');
+    localStorage.removeItem('userInfo');
+    localStorage.removeItem('userProfileImage');
+    navigate('/login'); 
   };
 
   const menuItems = [
@@ -19,7 +46,7 @@ const AdminLayout = ({ children, title = "Admin Panel" }) => {
     { name: 'View Bookings', path: '/admin/bookings', icon: CalendarCheck },
     { name: 'Manage Users', path: '/admin/users', icon: Users },
     { name: 'Reviews', path: '/admin/reviews', icon: Star },
-    { name: 'My Profile', path: '/admin/account', icon: Settings }, // Renamed to My Profile
+    { name: 'My Profile', path: '/admin/account', icon: Settings },
   ];
 
   return (
@@ -72,14 +99,14 @@ const AdminLayout = ({ children, title = "Admin Panel" }) => {
               <span className="text-xs font-bold text-slate-300 uppercase tracking-wider">System Online</span>
             </div>
             
-            {/* CLICKABLE PROFILE AVATAR */}
+            {/* CLICKABLE PROFILE AVATAR (Now uses live state!) */}
             <Link 
               to="/admin/account" 
               className="relative rounded-full ring-2 ring-transparent hover:ring-primary-500 transition-all duration-300 hover:scale-105 focus:outline-none shadow-lg"
               title="View Profile"
             >
               <img 
-                src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?q=80&w=150" 
+                src={profileImage} 
                 alt="Admin Profile" 
                 className="w-10 h-10 rounded-full border-2 border-slate-700 object-cover" 
               />

@@ -142,3 +142,34 @@ export const updateBooking = async (req, res, next) => {
     next(error);
   }
 };
+
+// @desc    Process/Complete a refund
+// @route   PATCH /api/bookings/:id/process-refund
+// @access  Private/Admin
+export const processRefundAdmin = async (req, res, next) => {
+  try {
+    const booking = await Booking.findById(req.params.id);
+
+    if (!booking) {
+      res.status(404);
+      throw new Error("Booking not found");
+    }
+
+    if (booking.refundStatus !== 'Pending') {
+      res.status(400);
+      throw new Error("Only pending refunds can be processed.");
+    }
+
+    // Update status to Completed
+    booking.refundStatus = 'Completed';
+    
+    const updatedBooking = await booking.save();
+
+    res.status(200).json({
+      message: "Refund processed successfully",
+      booking: updatedBooking
+    });
+  } catch (error) {
+    next(error);
+  }
+};

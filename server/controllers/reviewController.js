@@ -82,3 +82,22 @@ export const getMyReviews = async (req, res, next) => {
     next(error);
   }
 };
+
+// @desc    Delete a review (Admin only)
+// @route   DELETE /api/reviews/:id
+// @access  Private/Admin
+export const deleteReviewAdmin = async (req, res, next) => {
+  try {
+    const review = await Review.findById(req.params.id);
+
+    if (!review) {
+      res.status(404);
+      throw new Error("Review not found");
+    }
+
+    await review.deleteOne();
+    res.status(200).json({ message: "Review deleted successfully" });
+  } catch (error) {
+    next(error);
+  }
+};

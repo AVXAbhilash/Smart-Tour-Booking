@@ -4,24 +4,48 @@ import {
   loginUser, 
   logoutUser,
   getUserProfile, 
-  updateUserProfile,    // <-- Import the new controller
-  updateUserPassword    // <-- Import the new controller
+  updateUserProfile,    
+  updateUserPassword,
+  getUsersAdmin,        // <-- New Admin Import
+  createUserAdmin,      // <-- New Admin Import
+  deleteUserAdmin,       // <-- New Admin Import
+  forgotPassword,     // <-- 1. Import new controller
+  resetPassword
 } from '../controllers/userController.js';
-import { protect } from '../middleware/authMiddleware.js';
+import { protect, admin } from '../middleware/authMiddleware.js'; // <-- Added 'admin'
 
 const router = express.Router();
 
-// Public Routes
+// ==========================================
+// PUBLIC ROUTES
+// ==========================================
 router.post('/register', registerUser);
 router.post('/login', loginUser);
 router.get('/logout', logoutUser);
 
-// Protected Routes (Must be logged in)
+// <-- 3. ADD THE TWO NEW ROUTES HERE -->
+router.post('/forgot-password', forgotPassword);
+router.put('/reset-password/:token', resetPassword);
+
+// ==========================================
+// PROTECTED USER ROUTES
+// ==========================================
 router.route('/profile')
   .get(protect, getUserProfile)
-  .put(protect, updateUserProfile); // <-- Added PUT route
+  .put(protect, updateUserProfile); 
 
-// Password update gets its own specific endpoint
-router.put('/password', protect, updateUserPassword); // <-- Added Password route
+router.put('/password', protect, updateUserPassword); 
+
+// ==========================================
+// PROTECTED ADMIN ROUTES
+// ==========================================
+// Get all users OR Create a new user
+router.route('/')
+  .get(protect, admin, getUsersAdmin)
+  .post(protect, admin, createUserAdmin);
+
+// Delete a specific user
+router.route('/:id')
+  .delete(protect, admin, deleteUserAdmin);
 
 export default router;

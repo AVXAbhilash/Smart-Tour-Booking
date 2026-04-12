@@ -3,7 +3,8 @@ import {
   createBooking, 
   getMyBookings, 
   getAllBookingsAdmin,
-  updateBooking
+  updateBooking,
+  processRefundAdmin
 } from '../controllers/bookingController.js';
 import { protect, admin } from '../middleware/authMiddleware.js';
 
@@ -25,5 +26,8 @@ router.route('/mybookings').get(getMyBookings);
 // Target a specific booking by ID to update it
 router.route('/:id')
   .put(updateBooking); // Protect is already applied via router.use(protect) above
+
+// Add this route (Ensure it's protected by admin middleware)
+router.route('/:id/process-refund').patch(protect, admin, processRefundAdmin);
 
 export default router;  

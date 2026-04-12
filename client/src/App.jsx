@@ -15,15 +15,16 @@ import BookingHistory from "./pages/user/BookingHistory";
 import Profile from "./pages/user/Profile";
 import FAQ from "./pages/user/FAQ"; 
 
-// Legals
-
-import PrivacyPolicy from "./pages/legal/PrivacyPolicy"
-import TermsOfService from "./pages/legal/TermsOfService"
-import CancellationPolicy from "./pages/legal/CancellationPolicy"
+// Legal Pages
+import PrivacyPolicy from "./pages/legal/PrivacyPolicy";
+import TermsOfService from "./pages/legal/TermsOfService";
+import CancellationPolicy from "./pages/legal/CancellationPolicy";
 
 // Auth Pages
 import Login from "./pages/auth/Login";
 import Register from "./pages/auth/Register";
+import ForgotPassword from "./pages/auth/ForgotPassword";
+import ResetPassword from "./pages/auth/ResetPassword";
 
 // Admin Pages
 import AdminDashboard from "./pages/admin/AdminDashboard";
@@ -39,24 +40,24 @@ import NotFound from "./pages/NotFound";
 function App() {
   const location = useLocation();
 
-  // --- 1. IDENTIFY THE CURRENT ROUTE ---
+  // --- 1. ROUTE IDENTIFICATION LOGIC ---
   const isAdminRoute = location.pathname.startsWith("/admin");
-  const isAuthRoute = location.pathname === "/login" || location.pathname === "/register";
-  
-  // FIX: Here is the missing variable! This tells the app if we are on the Home page.
   const isHomePage = location.pathname === "/";
+  
+  // List of auth-related paths where we hide global navigation
+  const authPaths = ["/login", "/register", "/forgot-password", "/reset-password"];
+  const isAuthRoute = authPaths.some(path => location.pathname.startsWith(path));
 
-  // --- 2. LAYOUT LOGIC ---
-  // Show Navbar everywhere EXCEPT Admin and Auth (Login/Register) screens
+  // --- 2. LAYOUT VISIBILITY LOGIC ---
+  // Hide Navbar/Footer on Admin and Auth screens
   const showNavbar = !isAdminRoute && !isAuthRoute;
   
-  // Show the Global Footer everywhere EXCEPT Admin, Auth, AND the Home page 
-  // (Because we imported the Footer directly into the bottom of Home.jsx!)
+  // Hide Footer on Admin, Auth, and Home (since Home often has its own specialized footer)
   const showGlobalFooter = !isAdminRoute && !isAuthRoute && !isHomePage;
 
   return (
     <div className="min-h-screen flex flex-col font-sans bg-gray-50 dark:bg-slate-950 text-slate-900 dark:text-slate-50 transition-colors duration-300">
-
+      
       <ScrollToTop />
       
       {/* GLOBAL NAVBAR */}
@@ -66,15 +67,16 @@ function App() {
         <Routes>
           {/* ----- PUBLIC ROUTES ----- */}
           <Route path="/" element={<Home />} />
-          
-          {/* Automatically redirect any old "/home" links to "/" to keep URLs clean */}
           <Route path="/home" element={<Navigate to="/" replace />} /> 
           
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route path="/reset-password/:token" element={<ResetPassword />} />
+          
           <Route path="/faq" element={<FAQ />} />
 
-          {/* ----- PROTECTED USER ROUTES (Must be logged in to access) ----- */}
+          {/* ----- PROTECTED USER ROUTES ----- */}
           <Route 
             path="/tours" 
             element={<ProtectedRoute><Packages /></ProtectedRoute>} 
@@ -92,17 +94,36 @@ function App() {
             element={<ProtectedRoute><Profile /></ProtectedRoute>} 
           />
 
-          {/* ----- ADMIN ROUTES ----- */}
-          <Route path="/admin/dashboard" element={<AdminDashboard />} />
-          <Route path="/admin/tours" element={<ManageTours />} />
-          <Route path="/admin/bookings" element={<ViewBookings />} />
-          <Route path="/admin/users" element={<ManageUsers />} />
-          <Route path="/admin/reviews" element={<ManageReviews />} />
-          <Route path="/admin/account" element={<AdminAccount />} />
+          {/* ----- ADMIN ROUTES (Should ideally use an AdminRoute wrapper) ----- */}
+          <Route 
+            path="/admin/dashboard" 
+            element={<ProtectedRoute adminOnly={true}><AdminDashboard /></ProtectedRoute>} 
+          />
+          <Route 
+            path="/admin/tours" 
+            element={<ProtectedRoute adminOnly={true}><ManageTours /></ProtectedRoute>} 
+          />
+          <Route 
+            path="/admin/bookings" 
+            element={<ProtectedRoute adminOnly={true}><ViewBookings /></ProtectedRoute>} 
+          />
+          <Route 
+            path="/admin/users" 
+            element={<ProtectedRoute adminOnly={true}><ManageUsers /></ProtectedRoute>} 
+          />
+          <Route 
+            path="/admin/reviews" 
+            element={<ProtectedRoute adminOnly={true}><ManageReviews /></ProtectedRoute>} 
+          />
+          <Route 
+            path="/admin/account" 
+            element={<ProtectedRoute adminOnly={true}><AdminAccount /></ProtectedRoute>} 
+          />
 
-          <Route path="/legal/PrivacyPolicy" element={<PrivacyPolicy />} />
-          <Route path="/legal/TermsOfService" element={<TermsOfService />} />
-          <Route path="/legal/CancellationPolicy" element={<CancellationPolicy />} />
+          {/* ----- LEGAL ROUTES ----- */}
+          <Route path="/legal/privacy-policy" element={<PrivacyPolicy />} />
+          <Route path="/legal/terms-of-service" element={<TermsOfService />} />
+          <Route path="/legal/cancellation-policy" element={<CancellationPolicy />} />
 
           {/* ----- 404 CATCH-ALL ----- */}
           <Route path="*" element={<NotFound />} />
