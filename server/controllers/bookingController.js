@@ -5,6 +5,7 @@ import Booking from '../models/booking.js';
 // @access  Private (Logged in users only)
 export const createBooking = async (req, res, next) => {
   try {
+    
 
     // 1. Accept the new paymentDetails from the frontend!
     const { tour, selectedDate, guests, totalAmount, paymentDetails } = req.body;
