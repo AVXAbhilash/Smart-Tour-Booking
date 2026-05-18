@@ -8,6 +8,8 @@
 
 **BookingBuddy** is a premium, end-to-end travel booking platform designed for seamless user experiences and robust administrative control. Built with the **MERN Stack**, it features an immersive video-hero landing page, secure JWT authentication, and a comprehensive Admin ERP for managing inventory, users, and financial transactions.
 
+Here you can try it https://bookingbuddy-one.vercel.app/
+
 -----
 
 ## ✨ Key Features
